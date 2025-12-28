@@ -43,7 +43,7 @@ We use `pysam` to parse BAM files. For every candidate variant:
 
 1.  Clone the repository:
     ```bash
-    git clone [https://github.com/frascalise/deep-genetic.git](https://github.com/frascalise/deep-genetic.git)
+    git clone https://github.com/frascalise/deep-genetic.git
     cd deep-genetic
     ```
 
