@@ -1,4 +1,4 @@
-# Somatic Variant Calling using Deep Learning
+# Somatic Variant Calling using Deep Learning (WIP)
 
 ![Project Status](https://img.shields.io/badge/Status-Development-yellow) ![Python](https://img.shields.io/badge/Python-3.8%2B-blue) ![Framework](https://img.shields.io/badge/Framework-PyTorch%20%7C%20Scikit--Learn-orange)
 
@@ -17,7 +17,7 @@ As defined in the project specifications:
 2.  **Pileup Image Generation:** Develop a script to convert genomic read alignments into RGB images (Pileups) representing Normal vs. Tumor samples.
 3.  **Deep Learning Classification:** Train a Convolutional Neural Network (CNN) to classify variants using the generated pileup images.
 
-## 📂 Dataset
+## 📂 Dataset (WIP)
 The project relies on paired **Normal/Tumor** sequencing data.
 * **Format:** BAM (Binary Alignment Map) for reads, VCF (Variant Call Format) for ground truth labels.
 * **Source:** [Insert Source Here, e.g., SEQC2 Data / Synthetic Dream Challenge].
