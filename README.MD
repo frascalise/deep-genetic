@@ -43,8 +43,8 @@ We use `pysam` to parse BAM files. For every candidate variant:
 
 1.  Clone the repository:
     ```bash
-    git clone [https://github.com/YOUR_USERNAME/somatic-variant-calling.git](https://github.com/YOUR_USERNAME/somatic-variant-calling.git)
-    cd somatic-variant-calling
+    git clone [https://github.com/frascalise/deep-genetic.git](https://github.com/frascalise/deep-genetic.git)
+    cd deep-genetic
     ```
 
 2.  Create a virtual environment (recommended):
