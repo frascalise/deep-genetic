@@ -18,9 +18,9 @@ def run_deepsomatic(verbose):
     # Docker mount point
     docker_mount = "/data"
     
-    # Input files (Docker paths)
-    docker_ref = f"{docker_mount}/deepsomatic_test/ucsc.hg19.chr20.unittest.fasta"
-    docker_tumor_bam = f"{docker_mount}/deepsomatic_test/NA12878_S1.chr20.10_10p1mb.bam"
+    docker_ref = f"{docker_mount}/deepsomatic_test/GRCh38_no_alt_analysis_set.chr20.fa.gz"
+    docker_tumor_bam = f"{docker_mount}/deepsomatic_test/somatic_quickstart_tumor.bam"
+    docker_normal_bam = f"{docker_mount}/deepsomatic_test/somatic_quickstart_normal.bam"
     
     # Output files (Docker paths)
     docker_output_vcf = f"{docker_mount}/deepsomatic_output/output.vcf.gz"
@@ -29,15 +29,17 @@ def run_deepsomatic(verbose):
     docker_intermediate_dir = f"{docker_mount}/deepsomatic_output/intermediate"
     
     # Model and sample configuration
-    model_type = "WGS"
-    sample_name = "tumor_sample"
+    model_type = "WGS" 
+    sample_name_tumor = "TUMOR"
+    sample_name_normal = "NORMAL"
     num_shards = "1"
     
     if verbose:
         print("Verbose mode enabled")
         print(">>> Setup completed")
-        print(">>> Running DeepSomatic")
-
+        print(f">>> Normal BAM: {docker_normal_bam}")
+        print(f">>> Tumor BAM:  {docker_tumor_bam}")
+        print(">>> Running DeepSomatic (Paired Mode)")
 
     #** Run DeepSomatic
     # Note: Paths must be relative to the Docker mount point (/data)
@@ -49,9 +51,11 @@ def run_deepsomatic(verbose):
         "--model_type", model_type,
         "--ref", docker_ref,
         "--reads_tumor", docker_tumor_bam,
+        "--reads_normal", docker_normal_bam,
         "--output_vcf", docker_output_vcf,
         "--output_gvcf", docker_output_gvcf,
-        "--sample_name_tumor", sample_name,
+        "--sample_name_tumor", sample_name_tumor,
+        "--sample_name_normal", sample_name_normal,
         "--num_shards", num_shards,
         "--logging_dir", docker_logs_dir,
         "--intermediate_results_dir", docker_intermediate_dir

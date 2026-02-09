@@ -22,8 +22,8 @@ Icon
 .Spotlight-V100
 .Trashes
 
-# Large files
-*.bam
-*.vcf.gz
-*.fasta
-*.tfrecord
+# DeepSomatic test data
+deepsomatic_test/*
+
+# DeepSomatic output data
+deepsomatic_output/*
