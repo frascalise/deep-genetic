@@ -21,3 +21,9 @@ Icon
 ._*
 .Spotlight-V100
 .Trashes
+
+# Large files
+*.bam
+*.vcf.gz
+*.fasta
+*.tfrecord
