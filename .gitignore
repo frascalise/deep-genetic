@@ -23,7 +23,7 @@ Icon
 .Trashes
 
 # DeepSomatic test data
-deepsomatic_test/*
+deepsomatic_data/*
 
 # DeepSomatic output data
 deepsomatic_output/*
