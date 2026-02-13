@@ -27,3 +27,4 @@ deepsomatic_data/*
 
 # DeepSomatic output data
 deepsomatic_output/*
+test_data/*

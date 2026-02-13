@@ -1,0 +1,28 @@
+# DeepSomatic Pipeline Configuration
+# ====================================
+
+output_dir: "deepsomatic_output/"
+
+# Input Files (path/to/file.ext)
+# -----------
+tumor_bam: "test_data/mini_tumor.bam"
+normal_bam: "test_data/mini_normal.bam"  
+reference: "deepsomatic_data/GRCh38_chr12_17_18.fa"
+ground_truth_vcf: "test_data/HG008_truth_chr12_17_18.vcf.gz"
+
+
+# Output Files (path/to/file.ext)
+# ------------
+output_vcf: "deepsomatic_output/output.vcf.gz"
+#output_gvcf: "deepsomatic_output/output.g.vcf.gz" # Optional
+
+
+# Optional Parameters
+# -------------------
+# Number of parallel shards (default: 2)
+# Note: Use fewer shards for small regions to avoid segmentation faults
+num_shards: 2
+
+# Uncomment and set to analyze specific genomic regions
+# Example: "chr17:7670000-7680000"
+regions: "chr17:7670000-7680000"

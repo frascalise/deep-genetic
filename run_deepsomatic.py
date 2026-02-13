@@ -1,78 +1,66 @@
-"""
-Deepsomatic with Docker
-BAM: Aligned reads of DNA sample
-FASTA: Reference genome
-VCF: Final output, only positions with variants
-"""
-
 import argparse
 import subprocess
+import yaml
 from pathlib import Path
 
-def run_deepsomatic(verbose):
-    base_dir = Path(__file__).parent
-    test_dir = base_dir / "deepsomatic_test"
-    output_dir = base_dir / "deepsomatic_output"
-    output_dir.mkdir(exist_ok=True)
-    
-    # Docker mount point
-    docker_mount = "/data"
-    
-    docker_ref = f"{docker_mount}/deepsomatic_test/GRCh38_no_alt_analysis_set.chr20.fa.gz"
-    docker_tumor_bam = f"{docker_mount}/deepsomatic_test/somatic_quickstart_tumor.bam"
-    docker_normal_bam = f"{docker_mount}/deepsomatic_test/somatic_quickstart_normal.bam"
-    
-    # Output files (Docker paths)
-    docker_output_vcf = f"{docker_mount}/deepsomatic_output/output.vcf.gz"
-    docker_output_gvcf = f"{docker_mount}/deepsomatic_output/output.g.vcf.gz"
-    docker_logs_dir = f"{docker_mount}/deepsomatic_output/logs"
-    docker_intermediate_dir = f"{docker_mount}/deepsomatic_output/intermediate"
-    
-    # Model and sample configuration
-    model_type = "WGS" 
-    sample_name_tumor = "TUMOR"
-    sample_name_normal = "NORMAL"
-    num_shards = "1"
-    
-    if verbose:
-        print("Verbose mode enabled")
-        print(">>> Setup completed")
-        print(f">>> Normal BAM: {docker_normal_bam}")
-        print(f">>> Tumor BAM:  {docker_tumor_bam}")
-        print(">>> Running DeepSomatic (Paired Mode)")
 
-    #** Run DeepSomatic
-    # Note: Paths must be relative to the Docker mount point (/data)
+# Load parameters from YAML
+with open("params.yaml", "r") as f:
+    params = yaml.safe_load(f)
+
+TUMOR_BAM = f"/input/{params['tumor_bam']}" # File with tumor reads (with docker path)
+NORMAL_BAM = f"/input/{params['normal_bam']}" # File with normal reads (with docker path)
+REFERENCE = f"/input/{params['reference']}" # Reference genome (with docker path)
+OUTPUT_VCF = f"/output/{params['output_vcf']}" # Output VCF file (with docker path)
+OUTPUT_GVCF = f"/output/{params['output_gvcf']}" if params.get('output_gvcf') else None # Output gVCF file (with docker path)
+NUM_SHARDS = params["num_shards"] # Number of shards (the work is divided in N parts)
+REGIONS = params.get("regions") # Regions to analyze (optional)
+MODEL_TYPE = "WGS" # Model type (WGS for genome or WES for exome)
+
+verbose = False # Can be set to True with the --verbose flag
+
+
+def run_deepsomatic(): 
     cmd = [
-        "docker", "run", "--rm",
-        "-v", f"{base_dir}:{docker_mount}",
+        "docker", "run", 
+        "--rm",
+        "--gpus", "all",
+        "-v", f"{Path(__file__).parent}:/input",
+        "-v", f"{Path(__file__).parent / params['output_dir']}:/output",
         "google/deepsomatic:1.8.0",
         "run_deepsomatic",
-        "--model_type", model_type,
-        "--ref", docker_ref,
-        "--reads_tumor", docker_tumor_bam,
-        "--reads_normal", docker_normal_bam,
-        "--output_vcf", docker_output_vcf,
-        "--output_gvcf", docker_output_gvcf,
-        "--sample_name_tumor", sample_name_tumor,
-        "--sample_name_normal", sample_name_normal,
-        "--num_shards", num_shards,
-        "--logging_dir", docker_logs_dir,
-        "--intermediate_results_dir", docker_intermediate_dir
+        "--model_type", MODEL_TYPE,
+        "--ref", REFERENCE,
+        "--reads_tumor", TUMOR_BAM,
+        "--reads_normal", NORMAL_BAM,
+        "--output_vcf", OUTPUT_VCF,
+        "--num_shards", str(NUM_SHARDS)
     ]
+    if REGIONS:
+        cmd.extend(["--regions", REGIONS])
+    if OUTPUT_GVCF:
+        cmd.extend(["--output_gvcf", OUTPUT_GVCF])
     
-    #* Execute the command in the terminal
-    subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
     if verbose:
-        print(">>> DeepSomatic completed")
-        print(">>> Visualizing results")
-        subprocess.run(["python", "visualize_variants.py"], check=True)
-    
+        subprocess.run(cmd, check=True)
+    else:
+        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) 
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Deepsomatic runner")
     parser.add_argument("--verbose", action="store_true", help="Verbose output")
     args = parser.parse_args()
-    run_deepsomatic(args.verbose)
-        
+
+    print("Tumor BAM: \t", TUMOR_BAM)
+    print("Normal BAM: \t", NORMAL_BAM)
+    print("Reference: \t", REFERENCE)
+    print("Output VCF: \t", OUTPUT_VCF)
+    print("Output GVCF: \t", OUTPUT_GVCF)
+    print("Num shards: \t", NUM_SHARDS)
+    print("Regions: \t", REGIONS)
+    print("Model type: \t", MODEL_TYPE)
+    input("Press Enter to continue... (may take a while)")
+    print("\nDeepSomatic is running...\n")
+
+    run_deepsomatic()
