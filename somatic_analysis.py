@@ -81,12 +81,30 @@ def deepsomatic_scores(vcf_df, gt_df):
         same_alt   = vcf_df.loc[vcf_df['POS'] == i, 'ALT'].values[0]   == gt_df.loc[gt_df['POS'] == i, 'ALT'].values[0]
         
         if same_ref and same_alt and same_pos and same_chrom:
-            print("VARIANT NUMBER: ", gt_df.loc[gt_df['POS'] == i, 'ID'].index[0])
-            print("VCF CHROM: ", vcf_df.loc[vcf_df['POS'] == i, '#CHROM'].values[0], "\t| GTCHROM: ", gt_df.loc[gt_df['POS'] == i, '#CHROM'].values[0])
-            print("VCF POS: ", vcf_df.loc[vcf_df['POS'] == i, 'POS'].values[0], "\t| GT POS: ", gt_df.loc[gt_df['POS'] == i, 'POS'].values[0])
-            print("VCF REF: ", vcf_df.loc[vcf_df['POS'] == i, 'REF'].values[0], "\t\t| GT REF: ", gt_df.loc[gt_df['POS'] == i, 'REF'].values[0])
-            print("VCF ALT: ", vcf_df.loc[vcf_df['POS'] == i, 'ALT'].values[0], "\t\t| GT ALT: ", gt_df.loc[gt_df['POS'] == i, 'ALT'].values[0])
-            print("\n")
+            variant_num = gt_df.loc[gt_df['POS'] == i, 'ID'].index[0]
+            
+            # Extract values
+            vcf_chrom = str(vcf_df.loc[vcf_df['POS'] == i, '#CHROM'].values[0])
+            vcf_pos = str(vcf_df.loc[vcf_df['POS'] == i, 'POS'].values[0])
+            vcf_ref = str(vcf_df.loc[vcf_df['POS'] == i, 'REF'].values[0])
+            vcf_alt = str(vcf_df.loc[vcf_df['POS'] == i, 'ALT'].values[0])
+            
+            gt_chrom = str(gt_df.loc[gt_df['POS'] == i, '#CHROM'].values[0])
+            gt_pos = str(gt_df.loc[gt_df['POS'] == i, 'POS'].values[0])
+            gt_ref = str(gt_df.loc[gt_df['POS'] == i, 'REF'].values[0])
+            gt_alt = str(gt_df.loc[gt_df['POS'] == i, 'ALT'].values[0])
+            
+            # Custom table with Unicode box-drawing characters
+            print(f"\n┌{'─'*70}┐")
+            print(f"│ VARIANT NUMBER: {variant_num:<53}│")
+            print(f"├{'─'*20}┬{'─'*24}┬{'─'*24}┤")
+            print(f"│ {'Field':<18} │ {'VCF':<22} │ {'Ground Truth':<22} │")
+            print(f"├{'─'*20}┼{'─'*24}┼{'─'*24}┤")
+            print(f"│ {'CHROM':<18} │ {vcf_chrom:<22} │ {gt_chrom:<22} │")
+            print(f"│ {'POS':<18} │ {vcf_pos:<22} │ {gt_pos:<22} │")
+            print(f"│ {'REF':<18} │ {vcf_ref:<22} │ {gt_ref:<22} │")
+            print(f"│ {'ALT':<18} │ {vcf_alt:<22} │ {gt_alt:<22} │")
+            print(f"└{'─'*20}┴{'─'*24}┴{'─'*24}┘\n")
         else:
             print("No match")   
 
