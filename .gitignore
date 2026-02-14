@@ -22,14 +22,13 @@ Icon
 .Spotlight-V100
 .Trashes
 
-# DeepSomatic test data
+# DeepSomatic input data
 deepsomatic_data/*
+regional_data/*
+test_data/*
 
 # DeepSomatic output data
 deepsomatic_output/*
-
-# Test data
-test_data/*
 
 # VSCode
 .vscode/*
