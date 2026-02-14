@@ -1,6 +1,6 @@
 import pandas as pd
-import gzip
 import yaml
+import gzip
 import os
 import io
 import matplotlib.pyplot as plt
@@ -12,28 +12,28 @@ import numpy as np
 DEEPSOMATIC_OUTPUT = None # Contains the path to the output VCF file
 DEEPSOMATIC_OUTPUT_GVCF = None # Contains the path to the output GVCF file
 GROUND_TRUTH_VCF = None # Contains the path to the ground truth VCF file
+LIMIT = False # Limit the analysis to a specific region
+MIN_REGION = 7670000 # Contains the minimum region size (found in the yaml file in the regions section)
+MAX_REGION = 7680000 # Contains the maximum region size (found in the yaml file in the regions section)
 
 
 def setup_path():
-    with open("params.yaml", "r") as f:
-        params = yaml.safe_load(f)
-
     global DEEPSOMATIC_OUTPUT, DEEPSOMATIC_OUTPUT_GVCF, GROUND_TRUTH_VCF
-    DEEPSOMATIC_OUTPUT = params["output_vcf"]
-    DEEPSOMATIC_OUTPUT_GVCF = params['output_gvcf'] if params.get('output_gvcf') else None
-    GROUND_TRUTH_VCF = params["ground_truth_vcf"]
+    DEEPSOMATIC_OUTPUT = "deepsomatic_output/output.vcf.gz"
+    DEEPSOMATIC_OUTPUT_GVCF = "deepsomatic_output/output.vcf.gz.tbi"
+    GROUND_TRUTH_VCF = "deepsomatic_data/truth_big.vcf.gz"
 
     # Check if the files exists
     if not os.path.exists(DEEPSOMATIC_OUTPUT):
-        print("ERROR: FILE", params["output_vcf"], "NOT FOUND")
+        print("ERROR: FILE", DEEPSOMATIC_OUTPUT, "NOT FOUND")
         exit()
 
     if DEEPSOMATIC_OUTPUT_GVCF and not os.path.exists(DEEPSOMATIC_OUTPUT_GVCF):
-        print("ERROR: FILE", params["output_gvcf"], "NOT FOUND")
+        print("ERROR: FILE", DEEPSOMATIC_OUTPUT_GVCF, "NOT FOUND")
         exit()
 
     if not os.path.exists(GROUND_TRUTH_VCF):
-        print("ERROR: FILE", params["ground_truth_vcf"], "NOT FOUND")
+        print("ERROR: FILE", GROUND_TRUTH_VCF, "NOT FOUND")
         exit()
     
 
@@ -71,9 +71,13 @@ def deepsomatic_scores(vcf_df, gt_df):
     GT_POS = gt_df['POS']
 
     for i in GT_POS:
+        if LIMIT:
+            if i < MIN_REGION or i > MAX_REGION:
+                continue
         if vcf_df.loc[vcf_df['POS'] == i].empty:
-            print("Record not found in VCF")
+            print("Record from GT at position", i, "not found in TUMOR VCF")
             continue
+        
         # Check if the REF, ALT, POS and CHROM are the same between VCF and GT
         same_chrom = vcf_df.loc[vcf_df['POS'] == i, '#CHROM'].values[0] == gt_df.loc[gt_df['POS'] == i, '#CHROM'].values[0]
         same_pos   = vcf_df.loc[vcf_df['POS'] == i, 'POS'].values[0]   == gt_df.loc[gt_df['POS'] == i, 'POS'].values[0]
@@ -115,7 +119,6 @@ def visualize_vcf_data(df_input):
 
 if __name__ == "__main__":
     setup_path()
-
     #print("DEEPSOMATIC_OUTPUT: ", DEEPSOMATIC_OUTPUT)
     #print("DEEPSOMATIC_OUTPUT_GVCF: ", DEEPSOMATIC_OUTPUT_GVCF)
 

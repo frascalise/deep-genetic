@@ -24,8 +24,7 @@ Icon
 
 # DeepSomatic input data
 deepsomatic_data/*
-regional_data/*
-test_data/*
+downsampled/*
 
 # DeepSomatic output data
 deepsomatic_output/*
