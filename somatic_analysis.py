@@ -3,19 +3,25 @@ import gzip
 import yaml
 import os
 import io
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+import seaborn as sns
+import numpy as np
 
 
 DEEPSOMATIC_OUTPUT = None # Contains the path to the output VCF file
 DEEPSOMATIC_OUTPUT_GVCF = None # Contains the path to the output GVCF file
+GROUND_TRUTH_VCF = None # Contains the path to the ground truth VCF file
 
 
 def setup_path():
     with open("params.yaml", "r") as f:
         params = yaml.safe_load(f)
 
-    global DEEPSOMATIC_OUTPUT, DEEPSOMATIC_OUTPUT_GVCF
+    global DEEPSOMATIC_OUTPUT, DEEPSOMATIC_OUTPUT_GVCF, GROUND_TRUTH_VCF
     DEEPSOMATIC_OUTPUT = params["output_vcf"]
     DEEPSOMATIC_OUTPUT_GVCF = params['output_gvcf'] if params.get('output_gvcf') else None
+    GROUND_TRUTH_VCF = params["ground_truth_vcf"]
 
     # Check if the files exists
     if not os.path.exists(DEEPSOMATIC_OUTPUT):
@@ -26,10 +32,18 @@ def setup_path():
         print("ERROR: FILE", params["output_gvcf"], "NOT FOUND")
         exit()
 
+    if not os.path.exists(GROUND_TRUTH_VCF):
+        print("ERROR: FILE", params["ground_truth_vcf"], "NOT FOUND")
+        exit()
+    
 
-def read_vcf():
-    with gzip.open(DEEPSOMATIC_OUTPUT, "rt") as f:
-        lines = [l for l in f if not l.startswith('##')]
+def read_vcf(path):
+    if path.endswith(".gz"):
+        with gzip.open(path, "rt") as f:
+            lines = [l for l in f if not l.startswith('##')]
+    else:
+        with open(path, "r") as f:
+            lines = [l for l in f if not l.startswith('##')]
     
     # lines = [                         lines is a list of strings
     # "#CHROM\tPOS\tID\tREF...\n",      Header
@@ -48,15 +62,54 @@ def read_vcf():
     # 2  chr17  7671587  .   A   T   0.0  RefCall    .  GT:GQ:DP:AD:VAF:PL  0/0:46:136:129,6:0.0441176:0,46,52
     # 3  chr17  7671613  .   A   C   0.0  RefCall    .  GT:GQ:DP:AD:VAF:PL  0/0:43:122:115,6:0.0491803:0,52,43
     # 4  chr17  7671630  .   A   C   0.0  RefCall    .  GT:GQ:DP:AD:VAF:PL  0/0:47:128:119,5:0.0390625:0,48,54
-    # print(df.head(10))
+    # print(df.head(10), '\n\n')
+    
     return df
+
+
+def deepsomatic_scores(vcf_df, gt_df):
+    GT_POS = gt_df['POS']
+
+    for i in GT_POS:
+        if vcf_df.loc[vcf_df['POS'] == i].empty:
+            print("Record not found in VCF")
+            continue
+        # Check if the REF, ALT, POS and CHROM are the same between VCF and GT
+        same_chrom = vcf_df.loc[vcf_df['POS'] == i, '#CHROM'].values[0] == gt_df.loc[gt_df['POS'] == i, '#CHROM'].values[0]
+        same_pos   = vcf_df.loc[vcf_df['POS'] == i, 'POS'].values[0]   == gt_df.loc[gt_df['POS'] == i, 'POS'].values[0]
+        same_ref   = vcf_df.loc[vcf_df['POS'] == i, 'REF'].values[0]   == gt_df.loc[gt_df['POS'] == i, 'REF'].values[0]
+        same_alt   = vcf_df.loc[vcf_df['POS'] == i, 'ALT'].values[0]   == gt_df.loc[gt_df['POS'] == i, 'ALT'].values[0]
+        
+        if same_ref and same_alt and same_pos and same_chrom:
+            print("VARIANT NUMBER: ", gt_df.loc[gt_df['POS'] == i, 'ID'].index[0])
+            print("VCF CHROM: ", vcf_df.loc[vcf_df['POS'] == i, '#CHROM'].values[0], "\t| GTCHROM: ", gt_df.loc[gt_df['POS'] == i, '#CHROM'].values[0])
+            print("VCF POS: ", vcf_df.loc[vcf_df['POS'] == i, 'POS'].values[0], "\t| GT POS: ", gt_df.loc[gt_df['POS'] == i, 'POS'].values[0])
+            print("VCF REF: ", vcf_df.loc[vcf_df['POS'] == i, 'REF'].values[0], "\t\t| GT REF: ", gt_df.loc[gt_df['POS'] == i, 'REF'].values[0])
+            print("VCF ALT: ", vcf_df.loc[vcf_df['POS'] == i, 'ALT'].values[0], "\t\t| GT ALT: ", gt_df.loc[gt_df['POS'] == i, 'ALT'].values[0])
+            print("\n")
+        else:
+            print("No match")   
+
+
+def visualize_vcf_data(df_input):
+    pass
 
 
 if __name__ == "__main__":
     setup_path()
 
-    print("DEEPSOMATIC_OUTPUT: ", DEEPSOMATIC_OUTPUT)
-    print("DEEPSOMATIC_OUTPUT_GVCF: ", DEEPSOMATIC_OUTPUT_GVCF)
+    #print("DEEPSOMATIC_OUTPUT: ", DEEPSOMATIC_OUTPUT)
+    #print("DEEPSOMATIC_OUTPUT_GVCF: ", DEEPSOMATIC_OUTPUT_GVCF)
 
-    # Read the VCF file
-    df = read_vcf()
+    # Read the output VCF file
+    vcf_df = read_vcf(DEEPSOMATIC_OUTPUT)
+    # Read the ground truth VCF file
+    gt_df = read_vcf(GROUND_TRUTH_VCF)
+
+    #print(vcf_df[vcf_df['POS'] == 7675217])
+    #print(vcf_df.head())
+    #print(gt_df.head())
+    deepsomatic_scores(vcf_df, gt_df)
+
+    # visualize_vcf_data(vcf_df)
+    # visualize_vcf_data(gt_df)

@@ -8,7 +8,7 @@ output_dir: "deepsomatic_output/"
 tumor_bam: "test_data/mini_tumor.bam"
 normal_bam: "test_data/mini_normal.bam"  
 reference: "deepsomatic_data/GRCh38_chr12_17_18.fa"
-ground_truth_vcf: "test_data/HG008_truth_chr12_17_18.vcf.gz"
+ground_truth_vcf: "test_data/mini_truth.vcf"
 
 
 # Output Files (path/to/file.ext)
