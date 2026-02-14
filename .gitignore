@@ -27,6 +27,8 @@ deepsomatic_data/*
 
 # DeepSomatic output data
 deepsomatic_output/*
+
+# Test data
 test_data/*
 
 # VSCode
