@@ -50,13 +50,16 @@ def setup_path():
     
 
 def fix_output_vcf(df):
-    # Remove the rows where the FILTER column is equal to "RefCall" and "GERMLINE" (we are not interested in GERMLINE variants)
+    # Remove the rows where the FILTER column is equal to "RefCall" and "GERMLINE" (we are not interested in GERMLINE variants, only PASS)
     df = df[df['FILTER'] != 'RefCall']
     df = df[df['FILTER'] != 'GERMLINE']
     # print(df['FILTER'].unique())
     
     # Check the unique CHROM 
     # print(df['#CHROM'].unique())
+
+    # Total rows after filtering
+    # print(len(df))
     return df
 
 
@@ -67,6 +70,7 @@ def fix_ground_truth_vcf(df):
     # Filter the rows where the #CHROM column is equal to "chr17"
     df = df[df['#CHROM'].isin(CHROMOSOMES)]
     # print(df['#CHROM'].unique())
+
     return df
 
 
