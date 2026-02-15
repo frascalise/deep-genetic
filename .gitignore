@@ -22,6 +22,9 @@ Icon
 .Spotlight-V100
 .Trashes
 
+# VSCode
+.vscode/*
+
 # DeepSomatic input data
 deepsomatic_data/*
 downsampled/*
@@ -29,5 +32,3 @@ downsampled/*
 # DeepSomatic output data
 deepsomatic_output/*
 
-# VSCode
-.vscode/*

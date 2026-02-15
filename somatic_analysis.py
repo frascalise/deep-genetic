@@ -9,13 +9,25 @@ import seaborn as sns
 import numpy as np
 
 
+pd.set_option('display.max_columns', None)
+pd.set_option('display.max_rows', None)
+pd.set_option('display.width', None)
+pd.set_option('display.max_colwidth', None)
+
+
 DEEPSOMATIC_OUTPUT = None # Contains the path to the output VCF file
 DEEPSOMATIC_OUTPUT_GVCF = None # Contains the path to the output GVCF file
 GROUND_TRUTH_VCF = None # Contains the path to the ground truth VCF file
-LIMIT = False # Limit the analysis to a specific region
-MIN_REGION = 7670000 # Contains the minimum region size (found in the yaml file in the regions section)
-MAX_REGION = 7680000 # Contains the maximum region size (found in the yaml file in the regions section)
+MIN_REGION = 5000000 # Contains the minimum region size (found in the yaml file in the regions section)
+MAX_REGION = 8000000 # Contains the maximum region size (found in the yaml file in the regions section)
 
+CHROMOSOMES = ['chr17'] # Contains the chromosomes to analyze
+                        # 1. Check the fix_output_vcf function to see the uniques chromosomes in the output VCF (uncomment the print in the function)
+                        # 2. Add them in the list above
+
+VAF_THRESHOLD = 0.15    # Contains the VAF threshold to filter the variants
+                        # VAF tell the percentage of the variant in the tumor
+                        # 0.15 means that the variant must be present in at least 15% of the tumor reads
 
 def setup_path():
     global DEEPSOMATIC_OUTPUT, DEEPSOMATIC_OUTPUT_GVCF, GROUND_TRUTH_VCF
@@ -37,6 +49,27 @@ def setup_path():
         exit()
     
 
+def fix_output_vcf(df):
+    # Remove the rows where the FILTER column is equal to "RefCall" and "GERMLINE" (we are not interested in GERMLINE variants)
+    df = df[df['FILTER'] != 'RefCall']
+    df = df[df['FILTER'] != 'GERMLINE']
+    # print(df['FILTER'].unique())
+    
+    # Check the unique CHROM 
+    # print(df['#CHROM'].unique())
+    return df
+
+
+def fix_ground_truth_vcf(df):
+    # Remove the rows where the POS column is out the MIN-MAX REGION range
+    df = df[(df['POS'] >= MIN_REGION) & (df['POS'] <= MAX_REGION)]
+
+    # Filter the rows where the #CHROM column is equal to "chr17"
+    df = df[df['#CHROM'].isin(CHROMOSOMES)]
+    # print(df['#CHROM'].unique())
+    return df
+
+
 def read_vcf(path):
     if path.endswith(".gz"):
         with gzip.open(path, "rt") as f:
@@ -55,63 +88,66 @@ def read_vcf(path):
     vcf_string = ''.join(lines)
     df = pd.read_csv(io.StringIO(vcf_string), sep="\t")
 
-    # The result is a DataFrame like this:
+    # The result is a DataFrame like this: (considering the OUTPUT VCF)
+    # if Filter = RefCall, it means that the variant is not a somatic mutation (we can delete this)
     # CHROM      POS ID REF ALT  QUAL   FILTER INFO              FORMAT                               TUMOR
     # 0  chr17  7671133  .   A   C   0.0  RefCall    .  GT:GQ:DP:AD:VAF:PL    0/0:32:98:95,3:0.0306122:0,32,41
     # 1  chr17  7671570  .   G   T   0.0  RefCall    .  GT:GQ:DP:AD:VAF:PL  0/0:49:122:118,4:0.0327869:0,52,51
     # 2  chr17  7671587  .   A   T   0.0  RefCall    .  GT:GQ:DP:AD:VAF:PL  0/0:46:136:129,6:0.0441176:0,46,52
     # 3  chr17  7671613  .   A   C   0.0  RefCall    .  GT:GQ:DP:AD:VAF:PL  0/0:43:122:115,6:0.0491803:0,52,43
     # 4  chr17  7671630  .   A   C   0.0  RefCall    .  GT:GQ:DP:AD:VAF:PL  0/0:47:128:119,5:0.0390625:0,48,54
-    # print(df.head(10), '\n\n')
-    
+    # --------------------------------------------------------------------------------------------------------------------------------------------
+    # The result is a DataFrame like this: (considering the GROUND TRUTH VCF)
+    # CHROM      POS ID REF ALT QUAL FILTER                                               INFO    FORMAT      HG008-N           HG008-T
+    # 0  chr12    94894  .   T   C    .   PASS  CSQ=440073|protein_coding||intron_variant|||||...  AD:DP:AF  125,0:125:0  74,90:164:0.5488
+    # 1  chr12   216351  .   C   T    .   PASS  CSQ=6540|protein_coding||downstream_gene_varia...  AD:DP:AF    57,0:57:0   42,56:98:0.5714
+    # 2  chr12  1029855  .   C   G    .   PASS  CSQ=23085|protein_coding||intron_variant||||||...  AD:DP:AF  104,0:104:0  125,9:136:0.0662 
+    # print(df.head(5), '\n\n')
+    # print(df.tail(5), '\n\n')
     return df
 
 
 def deepsomatic_scores(vcf_df, gt_df):
     GT_POS = gt_df['POS']
 
-    for i in GT_POS:
-        if LIMIT:
-            if i < MIN_REGION or i > MAX_REGION:
-                continue
-        if vcf_df.loc[vcf_df['POS'] == i].empty:
-            print("Record from GT at position", i, "not found in TUMOR VCF")
-            continue
-        
-        # Check if the REF, ALT, POS and CHROM are the same between VCF and GT
-        same_chrom = vcf_df.loc[vcf_df['POS'] == i, '#CHROM'].values[0] == gt_df.loc[gt_df['POS'] == i, '#CHROM'].values[0]
-        same_pos   = vcf_df.loc[vcf_df['POS'] == i, 'POS'].values[0]   == gt_df.loc[gt_df['POS'] == i, 'POS'].values[0]
-        same_ref   = vcf_df.loc[vcf_df['POS'] == i, 'REF'].values[0]   == gt_df.loc[gt_df['POS'] == i, 'REF'].values[0]
-        same_alt   = vcf_df.loc[vcf_df['POS'] == i, 'ALT'].values[0]   == gt_df.loc[gt_df['POS'] == i, 'ALT'].values[0]
-        
-        if same_ref and same_alt and same_pos and same_chrom:
-            variant_num = gt_df.loc[gt_df['POS'] == i, 'ID'].index[0]
-            
-            # Extract values
-            vcf_chrom = str(vcf_df.loc[vcf_df['POS'] == i, '#CHROM'].values[0])
-            vcf_pos = str(vcf_df.loc[vcf_df['POS'] == i, 'POS'].values[0])
-            vcf_ref = str(vcf_df.loc[vcf_df['POS'] == i, 'REF'].values[0])
-            vcf_alt = str(vcf_df.loc[vcf_df['POS'] == i, 'ALT'].values[0])
-            
-            gt_chrom = str(gt_df.loc[gt_df['POS'] == i, '#CHROM'].values[0])
-            gt_pos = str(gt_df.loc[gt_df['POS'] == i, 'POS'].values[0])
-            gt_ref = str(gt_df.loc[gt_df['POS'] == i, 'REF'].values[0])
-            gt_alt = str(gt_df.loc[gt_df['POS'] == i, 'ALT'].values[0])
-            
-            # Custom table with Unicode box-drawing characters
-            print(f"\n┌{'─'*70}┐")
-            print(f"│ VARIANT NUMBER: {variant_num:<53}│")
-            print(f"├{'─'*20}┬{'─'*24}┬{'─'*24}┤")
-            print(f"│ {'Field':<18} │ {'VCF':<22} │ {'Ground Truth':<22} │")
-            print(f"├{'─'*20}┼{'─'*24}┼{'─'*24}┤")
-            print(f"│ {'CHROM':<18} │ {vcf_chrom:<22} │ {gt_chrom:<22} │")
-            print(f"│ {'POS':<18} │ {vcf_pos:<22} │ {gt_pos:<22} │")
-            print(f"│ {'REF':<18} │ {vcf_ref:<22} │ {gt_ref:<22} │")
-            print(f"│ {'ALT':<18} │ {vcf_alt:<22} │ {gt_alt:<22} │")
-            print(f"└{'─'*20}┴{'─'*24}┴{'─'*24}┘\n")
-        else:
-            print("No match")   
+    # True Positives (present in both VCF and GT)
+    tp = pd.merge(vcf_df, gt_df, on=['#CHROM', 'POS', 'REF', 'ALT'], how='inner')
+    # False Negatives (present in GT but not in VCF)
+    fn = pd.merge(gt_df, vcf_df, on=['#CHROM', 'POS', 'REF', 'ALT'], how='left', indicator=True).query("_merge == 'left_only'").drop(columns=['_merge'])
+    # False Positives (present in VCF but not in GT)
+    fp = pd.merge(vcf_df, gt_df, on=['#CHROM', 'POS', 'REF', 'ALT'], how='left', indicator=True).query("_merge == 'left_only'").drop(columns=['_merge'])
 
+    # Creating VAF Value column
+    # In tp VAF Value is the 5th value after the ':' in 'HG008-T_x' (the index is in 'FORMAT_x')
+    tp['VAF_VALUE'] = tp['HG008-T_x'].apply(lambda x: float(str(x).split(':')[4]) if pd.notnull(x) else 0.0)
+    # In fn VAF Value is the last value after the ':' in 'HG008-T_y' (the index is in 'FORMAT_y')
+    fn['VAF_VALUE'] = fn['HG008-T_y'].apply(lambda x: float(str(x).split(':')[-1]) if pd.notnull(x) else 0.0)
+    # In fp VAF Value is the 5th value after the ':' in 'HG008-T_x' (the index is in 'FORMAT_x') 
+    fp['VAF_VALUE'] = fp['HG008-T_x'].apply(lambda x: float(str(x).split(':')[4]) if pd.notnull(x) else 0.0)
+    
+    # Filter the variants where the VAF is greater than the threshold
+    tp_f = tp[tp['VAF_VALUE'] >= VAF_THRESHOLD]
+    fn_f = fn[fn['VAF_VALUE'] >= VAF_THRESHOLD]
+    fp_f = fp[fp['VAF_VALUE'] >= VAF_THRESHOLD]
+    
+    print("\n")
+    print("===== Unfiltered =====")
+    print("True Positives:", len(tp))
+    print("False Negatives:", len(fn))
+    print("False Positives:", len(fp))
+    print("Precision:", len(tp) / (len(tp) + len(fp)))
+    print("Recall:", len(tp) / (len(tp) + len(fn)))
+    print("F1 Score:", 2 * (len(tp) / (len(tp) + len(fp))) * (len(tp) / (len(tp) + len(fn))) / ((len(tp) / (len(tp) + len(fp))) + (len(tp) / (len(tp) + len(fn)))))
+    print("\n")
+    print(f"===== Filtered VAF (>{VAF_THRESHOLD}) =====")
+    print("True Positives:", len(tp_f))
+    print("False Negatives:", len(fn_f))
+    print("False Positives:", len(fp_f))
+    print("Precision:", len(tp_f) / (len(tp_f) + len(fp_f)))
+    print("Recall:", len(tp_f) / (len(tp_f) + len(fn_f)))
+    print("F1 Score:", 2 * (len(tp_f) / (len(tp_f) + len(fp_f))) * (len(tp_f) / (len(tp_f) + len(fn_f))) / ((len(tp_f) / (len(tp_f) + len(fp_f))) + (len(tp_f) / (len(tp_f) + len(fn_f)))))
+    print("\n")
+    
 
 def visualize_vcf_data(df_input):
     pass
@@ -119,13 +155,14 @@ def visualize_vcf_data(df_input):
 
 if __name__ == "__main__":
     setup_path()
-    #print("DEEPSOMATIC_OUTPUT: ", DEEPSOMATIC_OUTPUT)
-    #print("DEEPSOMATIC_OUTPUT_GVCF: ", DEEPSOMATIC_OUTPUT_GVCF)
 
-    # Read the output VCF file
+    # Read the Deepsomatic's output VCF file and fix it
     vcf_df = read_vcf(DEEPSOMATIC_OUTPUT)
+    vcf_df = fix_output_vcf(vcf_df)
+
     # Read the ground truth VCF file
     gt_df = read_vcf(GROUND_TRUTH_VCF)
+    gt_df = fix_ground_truth_vcf(gt_df)
 
     #print(vcf_df[vcf_df['POS'] == 7675217])
     #print(vcf_df.head())

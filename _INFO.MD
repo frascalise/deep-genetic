@@ -40,3 +40,7 @@ Il file VCF contiene le mutazioni somatiche identificate da deepsomatic. Bisogna
     - Per trovare il VAF in VCF guardo la colonna FORMAT alla ricerca di VAF, poi prendo il valore corrispondente nella colonna TUMOR
     - Per trovare il VAF in GT guardo la colonna FORMAT alla ricerca di AF (Allele Frequency), poi prendo il valore corrispondente nella colonna HG008-T
 
+## Come eseguire Deepsomatic
+1. Nel params.yaml impostare i file di input e output, il numero di region, batch size e shards (assicurarsi che i file di input siano corretti)
+2. Eseguire il comando python3 run_deepsomatic.py
+3. Per verificare se tutto e' andato per il verso giusto eseguire python3 somatic_analysis.py

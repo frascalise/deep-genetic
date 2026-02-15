@@ -8,15 +8,18 @@ output_dir: "deepsomatic_output/"
 tumor_bam: "downsampled/tumor.bam"
 normal_bam: "downsampled/normal.bam"  
 reference: "deepsomatic_data/reference.fa"
-ground_truth_vcf: "deepsomatic_data/truth.vcf.gz"
+ground_truth_vcf: "downsampled/truth_tumor_only.vcf.gz"
 
 
 # Optional Parameters
 # -------------------
 # Number of parallel shards (default: 2)
 # Note: Use fewer shards for small regions to avoid segmentation faults
-num_shards: 2
+num_shards: 1
 
 # Uncomment and set to analyze specific genomic regions
 # Example: "chr17:7670000-7680000"
-regions: "chr17:7670000-7680000"
+regions: "chr17:5000000-8000000"
+
+# Batch size (default: 256)
+batch_size: 256

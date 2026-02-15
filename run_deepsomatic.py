@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 
 
-VERBOSE = False # Show output of DeepSomatic
+VERBOSE = True # Show output of DeepSomatic
 
 # Load parameters from YAML
 with open("params.yaml", "r") as f:
@@ -18,6 +18,7 @@ OUTPUT_VCF = "/output/output.vcf.gz" # Output VCF file (with docker path)
 OUTPUT_GVCF = "/output/output.g.vcf.gz" # Output gVCF file (with docker path)
 NUM_SHARDS = params["num_shards"] # Number of shards (the work is divided in N parts)
 REGIONS = params.get("regions") # Regions to analyze (optional)
+BATCH_SIZE = params.get("batch_size") if params.get("batch_size") else "256" # Batch size (optional)
 MODEL_TYPE = "WGS" # Model type (WGS for genome or WES for exome)
 
 
@@ -29,7 +30,7 @@ def run_deepsomatic():
     cmd = [
         "docker", "run", 
         "--rm",
-        "--gpus", "all",
+        # "--gpus", "all",
         "-v", f"{Path(__file__).parent}:/input",
         "-v", f"{Path(__file__).parent / params['output_dir']}:/output",
         "google/deepsomatic:1.8.0",
@@ -39,7 +40,8 @@ def run_deepsomatic():
         "--reads_tumor", TUMOR_BAM,
         "--reads_normal", NORMAL_BAM,
         "--output_vcf", OUTPUT_VCF,
-        "--num_shards", str(NUM_SHARDS)
+        "--num_shards", str(NUM_SHARDS),
+        "--call_variants_extra_args", f"batch_size={BATCH_SIZE}"
     ]
     if REGIONS:
         cmd.extend(["--regions", REGIONS])
@@ -63,12 +65,13 @@ if __name__ == "__main__":
     print("Num shards: \t", NUM_SHARDS)
     print("Regions: \t", REGIONS)
     print("Model type: \t", MODEL_TYPE)
+    print("Batch size: \t", BATCH_SIZE)
     input("Press Enter to continue... (may take a while)")
     clear_screen()
     print("DeepSomatic is running...\n")
 
     run_deepsomatic()
-    
+
     print("Results:")
     print("Output VCF: \t", OUTPUT_VCF)
     print("Output GVCF: \t", OUTPUT_GVCF)
